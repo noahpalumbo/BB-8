@@ -84,8 +84,8 @@ void setup() {
   //initialize servos and start them in the center
   SERVO1.attach(s1pin);
   SERVO2.attach(s2pin);
-  SERVO1.write(81);
-  SERVO2.write(46);
+  SERVO1.write(85);
+  SERVO2.write(102);
 }
 
 void loop() {
