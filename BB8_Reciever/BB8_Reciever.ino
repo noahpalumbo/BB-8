@@ -13,14 +13,14 @@
 bool radioNumber = 1;
 
 // Pins used to control X and Y axis on motors
-const int X_PWM_PIN = 2;
+const int X_PWM_PIN = 2;  //wheel 1
 const int X_DIR1_PIN = 3;
-const int Y_PWM_PIN = 7;
+const int Y_PWM_PIN = 7;  //wheel 2
 const int Y_DIR2_PIN = 5;
 
-const int X_PWM_PIN2 = 9;
+const int X_PWM_PIN2 = 9; //wheel 3
 const int X_DIR1_PIN2 = 33;
-const int Y_PWM_PIN2 = 10;
+const int Y_PWM_PIN2 = 10;  //wheel 4
 const int Y_DIR2_PIN2 = 34;
 
 // Pins for servos
@@ -186,8 +186,8 @@ void loop() {
     //SERVO OUTPUT CODE
     servo1angle = neckY;
     servo2angle = neckX;
-    servo1angle = map(servo1angle, 127, -127, 37, 128);
-    servo2angle = map(servo2angle, -127, 127, 0, 92);
+    servo1angle = map(servo1angle, 127, -127, 55, 115);
+    servo2angle = map(servo2angle, -127, 127, 72, 132);
 
     SERVO1.write(servo1angle); // write neckY
     SERVO2.write(servo2angle); // write neckX
