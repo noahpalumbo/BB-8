@@ -45,6 +45,12 @@ int currMotorX = 0;
 int dampingConstant = 1;
 int fastDampingConstant = 5 * dampingConstant;  // use when need a quicker damp (mainly for deceleration [yeah I know it's just acceleration in a different direction])
 
+//Declare enable and control pins for L298n
+int EN_NECK = 6;      //Enable pin for first motor
+int IN1 = 4;       //control pin for first motor
+int IN2 = 13;       //control pin for first
+int motor_speed; 
+
 void setup() {    // Setup only runs once!
   Serial.begin(115200);   // begin communication with serial monitor @ specified baud 
 
@@ -83,9 +89,37 @@ void setup() {    // Setup only runs once!
   SERVO2.attach(s2pin);
   SERVO1.write(90);
   SERVO2.write(105);
+
+  // initialize the motor pins as outputs
+  pinMode(EN_NECK, OUTPUT);
+  pinMode(IN1, OUTPUT);  
+  pinMode(IN2, OUTPUT);
 }
 
 void loop() {
+  /****** Code to handle the neck rotation ******/
+  bool right_press = false;
+  bool left_press = true;
+    //x_pos = 1000; //analogRead (x_key) ;  //Reading the horizontal movement value
+    //y_pos = analogRead (y_key) ;  //Reading the vertical movement value
+    if (right_press == true && left_press == false){
+      motor_speed = 255; //map(x_pos, 400, 0, 0, 255);   //Mapping the values to 0-255 to move the motor
+      digitalWrite(IN1, LOW);
+      digitalWrite(IN2, HIGH);
+      analogWrite(EN_NECK, motor_speed);
+    }
+    else if (left_press == true && right_press == false){
+      motor_speed = 255; //map(x_pos, 600, 1023, 0, 255);
+      digitalWrite(IN1, HIGH);
+      digitalWrite(IN2, LOW);
+      analogWrite(EN_NECK, motor_speed);
+    }
+    else{
+      motor_speed = 0; //map(x_pos, 600, 1023, 0, 255);
+      digitalWrite(IN1, LOW);
+      digitalWrite(IN2, LOW);
+      analogWrite(EN_NECK, motor_speed);
+    }
 
   unsigned long payload; // payload variable 4 bytes
 
