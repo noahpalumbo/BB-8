@@ -1,32 +1,39 @@
 /*
-  Getting Started example sketch for nRF24L01+ radios
-  This is a very basic example of how to send data from one node to another
-  Updated: Dec 2014 by TMRh20
+* BB-8 Body Transceiver Module
+* RF chip used: nRF24L01
+* Updated: Oct 2019 by Noah Palumbo
 */
 
-#include <SPI.h>
-#include "RF24.h"
-#include <Servo.h>
+// include libraries that make our lives easier
+#include <SPI.h>   // SPI is protocol Arduino uses to communicate with RF chip
+#include "RF24.h"  // contains functions that help us use the RF chip
+#include <Servo.h> // contains functions to help us control the 180deg servos
 
-/****************** User Config ***************************/
-/***      Set this radio as radio number 0 or 1         ***/
-bool radioNumber = 1;
+/****************** RF Config ***************************/
+// Create "radio" object from CE and CSN pins */
+// PIN  8 =  CE : Chip Enable (data transmission logic)
+// PIN 53 = CSN : Chip Select Not (SPI enable pin, more transmission logic)
+RF24 radio(8, 53);
+/**********************************************************/
+
+// addresses of each chip
+byte addresses[][6] = {"1Node", "2Node"};
 
 // Pins used to control X and Y axis on motors
-const int X_PWM_PIN = 2;
-const int X_DIR1_PIN = 3;
-const int Y_PWM_PIN = 7;
-const int Y_DIR2_PIN = 5;
+const int X_PWM_PIN = 2;    // magnitude pin
+const int X_DIR1_PIN = 3;   // direction pin
+const int Y_PWM_PIN = 7;    // magnitude pin
+const int Y_DIR2_PIN = 5;   // direction pin
 
-const int X_PWM_PIN2 = 9;
-const int X_DIR1_PIN2 = 33;
-const int Y_PWM_PIN2 = 10;
-const int Y_DIR2_PIN2 = 34;
+const int X_PWM_PIN2 = 9;   // magnitude pin
+const int X_DIR1_PIN2 = 33; // direction pin
+const int Y_PWM_PIN2 = 10;  // magnitude pin
+const int Y_DIR2_PIN2 = 34; // direction pin
 
 // Pins for servos
-Servo SERVO1;
+Servo SERVO1;               // creates Servo objects
 Servo SERVO2;
-const int s1pin = 11;
+const int s1pin = 11;       // pin to write to be attached to Servo objects
 const int s2pin = 12;
 
 // Set initial motor values
@@ -38,37 +45,27 @@ int currMotorX = 0;
 int dampingConstant = 1;
 int fastDampingConstant = 5 * dampingConstant;  // use when need a quicker damp (mainly for deceleration [yeah I know it's just acceleration in a different direction])
 
-/* Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 7 & 8 */
-RF24 radio(8, 53);
-/**********************************************************/
-
-byte addresses[][6] = {"1Node", "2Node"};
-
-// Used to control whether this node is sending or receiving
-//NOTE we will always be reading, so we don't need to use role.
-//bool role = 0;
-
-void setup() {
-  pinMode(53, OUTPUT); //Required on Arduino MEGA
-  Serial.begin(115200);
+void setup() {    // Setup only runs once!
+  Serial.begin(115200);   // begin communication with serial monitor @ specified baud 
 
   radio.begin();
 
-  // Set the PA Level low to prevent power supply related issues since this is a
-  // getting_started sketch, and the likelihood of close proximity of the devices. RF24_PA_MAX is default.
+  // sets power amplifier level, set low for testing because chips likely to be close together
+  // can set high for longer distances, but draws more current
   radio.setPALevel(RF24_PA_LOW);
 
+  // Used to control whether this node is sending or receiving
   // Open a writing and reading pipe on each radio, with opposite addresses
-  if (radioNumber) {
-    radio.openWritingPipe(addresses[1]);
-    radio.openReadingPipe(1, addresses[0]);
-  } else {
-    radio.openWritingPipe(addresses[0]);
-    radio.openReadingPipe(1, addresses[1]);
-  }
+  // This transceiver will only be receiving for the time being...
+  radio.openWritingPipe(addresses[1]);
+  // but we may write to Radio 0 in the future
+  radio.openReadingPipe(1, addresses[0]);
 
   // Start the radio listening for data
   radio.startListening();
+
+  // OUTPUT to CE of RF chip
+  pinMode(53, OUTPUT);
 
   //Set motor pins to output
   pinMode(X_PWM_PIN, OUTPUT);
@@ -84,14 +81,11 @@ void setup() {
   //initialize servos and start them in the center
   SERVO1.attach(s1pin);
   SERVO2.attach(s2pin);
-  SERVO1.write(81);
-  SERVO2.write(46);
+  SERVO1.write(90);
+  SERVO2.write(105);
 }
 
 void loop() {
-
-
-  /****************** Pong Back Role ***************************/
 
   unsigned long payload; // payload variable 4 bytes
 
@@ -106,16 +100,15 @@ void loop() {
   
   if (radio.available()) {
     //Serial.print("Radio received!");
-    // Variable for the received timestamp
     while (radio.available()) {                             // While there is data ready
       radio.read( &payload, sizeof(uint32_t) );             // Get the payload
       //Serial.println(payload);
     }
 
     // FOR USE IF CONTROLLER NEEDS FEEDBACK
-    //radio.stopListening();                                        // First, stop listening so we can talk
-    //radio.write( &payload, sizeof(unsigned long) );               // Send the final one back.
-    //radio.startListening();                                       // Now, resume listening so we catch the next packets.
+    //radio.stopListening();                                // First, stop listening so we can talk
+    //radio.write( &payload, sizeof(unsigned long) );       // Send the final one back.
+    //radio.startListening();                               // Now, resume listening so we catch the next packets.
 
     //Decode our message into individual motor signals
     // Payload structure:
@@ -123,15 +116,17 @@ void loop() {
     //   Motor X     Motor Y     Neck X       Neck Y
     //-------------------------------------------------------
 
-    motorX = (payload & 0xFF000000) >> 24; // Mask Everything except the Motor Back signal
-    payload = payload;                     //Recopy payload (since we masked out all the other bits)
-    motorY = (payload & 0x00FF0000) >> 16; // Mask Everything except the Motor Forward signal and shift it to the lowest bits
-    payload = payload;
-    neckX = (payload & 0x0000FF00) >> 8;
-    payload = payload;
-    neckY = payload & 0x000000FF;
+    // TODO, pretty sure there is a better way to do this, just not high priority right now
+    motorX = (payload & 0xFF000000) >> 24; // Mask Motor X signal
+    payload = payload;                     // Recopy payload (since we masked out all the other bits)
+    motorY = (payload & 0x00FF0000) >> 16; // Mask Motor Y signal
+    payload = payload;                     // Recopy payload (since we masked out all the other bits)
+    neckX = (payload & 0x0000FF00) >> 8;   // Mask Neck X signal
+    payload = payload;                     // Recopy payload (since we masked out all the other bits)
+    neckY = payload & 0x000000FF;          // Mask Neck Y signal
 
     // Payload Debug Prints
+
     
     Serial.print("motorX: ");
     Serial.println(motorX);
@@ -148,7 +143,7 @@ void loop() {
     motorY -= 127;
     motorX -= 127;
     neckY -= 127;
-    neckX -= 127;
+    //neckX -= 127;
 
     // Modified to Zero Center Payload Debug Prints
     // values roughly (-127 <-> 127)
@@ -179,21 +174,21 @@ void loop() {
     Serial.println();
     */
 
-    // scaling to account for overflow
-    neckX = neckX / 2;
+    // scaling to soothe RF noise causing jumps in servo values
+    neckX = neckX * 10;
     neckY = neckY / 1.5;
     
     //SERVO OUTPUT CODE
+    // TODO definitely needs to be refined and tuned once final physical environment is applied
     servo1angle = neckY;
     servo2angle = neckX;
     servo1angle = map(servo1angle, 127, -127, 37, 128);
-    servo2angle = map(servo2angle, -127, 127, 0, 92);
+    servo2angle = map(servo2angle, 0, 2550, 20, 160);
 
     SERVO1.write(servo1angle); // write neckY
     SERVO2.write(servo2angle); // write neckX
 
-    // MOTOR OUTPUT CODE
-    // OPEN LOOP PROPORTIONAL CONTROLLER
+    /* MOTOR OUTPUT CODE **************************************************************************/
         // Motor Y Direction and currMotorY update
         if (motorY < -5) {                   // if user input is negative Y
           //need to move backward (  )
@@ -327,12 +322,9 @@ void loop() {
              digitalWrite(X_DIR1_PIN2, 0);
              analogWrite(X_PWM_PIN2, 0);
             }
-          
-        
-      }
+    /***************************************************************************************************/
+    }
 
   //Serial.println("Radio not received :(");
 
 } // Loop
-
-//Motor 1 is janky
