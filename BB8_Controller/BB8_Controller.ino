@@ -1,7 +1,7 @@
 /*
 * BB-8 Controller Transceiver Module
 * RF chip used: nRF24L01
-* Updated: Oct 2019 by Noah Palumbo
+* Updated: Jan 2020 by Noah Palumbo
 */
 
 // include libraries that make our lives easier
@@ -20,10 +20,10 @@ byte addresses[][6] = {"1Node","2Node"};
 //                      Tx:[0], Rx[1]
 
 // declare motor and servo ints
-int x1, x2, y1, y2;
+int x1, x2, y1, y2, cw, ccw, i;
 
 void setup() {          // Setup only runs once!
-  Serial.begin(115200); // begin communication with serial monitor @ specified baud 
+  Serial.begin(9600); // begin communication with serial monitor @ specified baud 
   
   radio.begin();
   // Set pinModes for each pin in use
@@ -32,8 +32,8 @@ void setup() {          // Setup only runs once!
   // Inputs all from joystick pins
   pinMode(A0, INPUT); // X2 wheels x
   pinMode(A1, INPUT); // Y2 wheels y
-  pinMode(A2, INPUT); // SEL2 NOT YET IN USE
-  pinMode(A5, INPUT); // SEL1 NOT YET IN USE
+  pinMode(A3, INPUT_PULLUP);
+  pinMode(A5, INPUT_PULLUP);
   pinMode(A6, INPUT); // Y1 neck y
   pinMode(A7, INPUT); // X1 neck x
   
@@ -55,7 +55,8 @@ void setup() {          // Setup only runs once!
 
 // this code typically runs over and over
 void loop() {
-  uint32_t message = 0x00;        // initiate message at 0
+  uint8_t message[5];        // initiate message at 0
+  i = 0;
   x2 = analogRead(A0);            // X2 : X motors, Analog value 0-1023
   x2 = map(x2, 0, 1023, 0, 255);  // map instead to 0-255 so X2 message is 8-bit rather than 10-bit
   y2 = analogRead(A1);            // Y2 : Y motors, Analog value 0-1023
@@ -64,27 +65,47 @@ void loop() {
   x1 = map(x1, 0, 1023, 0, 255);  // map instead to 0-255 so Y2 message is 8-bit rather than 10-bit
   y1 = analogRead(A6);            // Y1 : Y neck servos, Analog value 0-1023
   y1 = map(y1, 0, 1023, 0, 255);  // map instead to 0-255 so Y2 message is 8-bit rather than 10-bit
+  
+  cw = digitalRead(A5);           // 0 = pressed, 1 = not pressed
+  ccw = digitalRead(A3);          // 0 = pressed, 1 = not pressed
 
-  message = x2;                   // X2 (X motors) will be first byte     0x(X2)
-  message = (message << 8) | y2;  // Y2 (Y motors) will be second byte    0x(X2)(Y2)
-  message = (message << 8) | x1;  // X1 (X servo)  will be third byte     0x(X2)(Y2)(X1)
-  message = (message << 8) | y1;  // Y1 (Y servo)  will be fourth byte    0x(X2)(Y2)(X1)(Y1)
+  message[0] = x2;                      // X2 (X motors) will be first byte     [X2]
+  message[1] = y2;                      // Y2 (Y motors) will be second byte    [X2, Y2]
+  message[2] = x1;                      // X1 (X servo)  will be third byte     [X2, Y2, X1]
+  message[3] = y1;                      // Y1 (Y servo)  will be fourth byte    [X2, Y2, X1, Y1]
+  message[4] = cw;                      // CW (Clockwise Bit)                   [X2, Y2, X1, Y1, 0000 00(cw)]
+  message[4] = (message[4] << 1) | ccw; // CCW (CounterClockwise Bit)           [X2, Y2, X1, Y1, 0000 00(cw)(ccw)]
+
+  Serial.println(message[4]);
 
   /******** Can check Serial Monitor to see what is being Sent ***********/
   Serial.print("Transmitted: ");
-  Serial.println(message , BIN);
+  while(i < 4)
+  {
+    Serial.print(message[i], BIN);
+    i++;
+  }
+  Serial.println(message[4] , BIN);
+  i = 0;
 
   Serial.print("Motor X-Value:");
-  Serial.println((message & 0xFF000000) >> 24);
+  Serial.println(message[0]);
     
   Serial.print("Motor Y-Value:");
-  Serial.println((message & 0x00FF0000) >> 16);
+  Serial.println(message[1]);
 
   Serial.print("Neck X-Value:");
-  Serial.println((message & 0x0000FF00) >> 8);
+  Serial.println(message[2]);
 
   Serial.print("Neck Y-Value:");
-  Serial.println(message & 0x000000FF);
+  Serial.println(message[3]);
+
+  Serial.print("Right Stick Click:");       // 0 = pressed, 1 = not pressed
+  Serial.println((message[4] & 0x02) >> 1);
+
+  Serial.print("Left Stick Click:");        // 0 = pressed, 1 = not pressed
+  Serial.println(message[4] & 0x01);
+  
   /***********************************************************************/
 
   // Compund instruction, but most important
@@ -92,7 +113,7 @@ void loop() {
   // 0 return means the write was unsuccessful, meaning it was not received by receiver
   // 1 return means write was successful
   // CALLS radio.write and checks its value
-  if (!radio.write(&message, sizeof(unsigned long) )){  // if 0 returned 
+  if (!radio.write(&message, sizeof(message) )){      // if 0 returned 
    Serial.println(F("failed"));                         //    print "failed"
   }
 
