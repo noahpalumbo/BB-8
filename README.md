@@ -8,7 +8,7 @@
 - Minor Optimization
 	 - Removed extraneous code during message parsing on
    base receiving end
-- Removed extraneous code during message parsing on
+	- Removed extraneous code during message parsing on
    base receiving end 
  - TODOS: 	
 	 - Reconfigure pin layout 	
