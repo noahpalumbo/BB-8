@@ -1,5 +1,7 @@
 # Changelog
+
 1.1.0:
+
 Head rotation command transmission integrated in both base and controller
 Array message transmission and parsing fully functional
 Minor Optimization
@@ -10,6 +12,7 @@ TODOS:
 	Add 10uF electrolytic cap and monitor any changes in firmware operation
 
 1.0.1:
+
 Array messaging (sending) functional.
 No head rotation integration
 
