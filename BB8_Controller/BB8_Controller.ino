@@ -1,12 +1,10 @@
 /*
 * BB-8 Controller Transceiver Module
 * RF chip used: nRF24L01
-* Updated: Jan 2020 by Noah Palumbo
+* Updated: Feb 2020 by Noah Palumbo
 */
 
-// include libraries that make our lives easier
-#include <SPI.h>  // SPI is protocol Arduino uses to communicate with RF chip
-#include "RF24.h" // contains functions that help us use the RF chip
+#include "controllerLib.h"
 
 /****************** RF Config ***************************/
 // Create "radio" object from CE and CSN pins */
@@ -20,22 +18,15 @@ byte addresses[][6] = {"1Node","2Node"};
 //                      Tx:[0], Rx[1]
 
 // declare motor and servo ints
-int x1, x2, y1, y2, cw, ccw, i;
+int x1, x2, y1, y2, cw, ccw;
 
 void setup() {          // Setup only runs once!
   Serial.begin(9600); // begin communication with serial monitor @ specified baud 
   
   radio.begin();
-  // Set pinModes for each pin in use
-  // Outputs
-  pinMode(6, OUTPUT); // OUTPUT to CE of RF chip
-  // Inputs all from joystick pins
-  pinMode(A0, INPUT); // X2 wheels x
-  pinMode(A1, INPUT); // Y2 wheels y
-  pinMode(A3, INPUT_PULLUP);
-  pinMode(A5, INPUT_PULLUP);
-  pinMode(A6, INPUT); // Y1 neck y
-  pinMode(A7, INPUT); // X1 neck x
+  
+  // sets pin modes for each peripheral
+  setPins();
   
   // sets power amplifier level, set low for testing because chips likely to be close together
   // can set high for longer distances, but draws more current
@@ -56,7 +47,6 @@ void setup() {          // Setup only runs once!
 // this code typically runs over and over
 void loop() {
   uint8_t message[5];        // initiate message at 0
-  i = 0;
   x2 = analogRead(A0);            // X2 : X motors, Analog value 0-1023
   x2 = map(x2, 0, 1023, 0, 255);  // map instead to 0-255 so X2 message is 8-bit rather than 10-bit
   y2 = analogRead(A1);            // Y2 : Y motors, Analog value 0-1023
@@ -76,43 +66,14 @@ void loop() {
   message[4] = cw;                      // CW (Clockwise Bit)                   [X2, Y2, X1, Y1, 0000 00(cw)]
   message[4] = (message[4] << 1) | ccw; // CCW (CounterClockwise Bit)           [X2, Y2, X1, Y1, 0000 00(cw)(ccw)]
 
-  Serial.println(message[4]);
-
-  /******** Can check Serial Monitor to see what is being Sent ***********/
-  Serial.print("Transmitted: ");
-  while(i < 4)
-  {
-    Serial.print(message[i], BIN);
-    i++;
-  }
-  Serial.println(message[4] , BIN);
-  i = 0;
-
-  Serial.print("Motor X-Value:");
-  Serial.println(message[0]);
-    
-  Serial.print("Motor Y-Value:");
-  Serial.println(message[1]);
-
-  Serial.print("Neck X-Value:");
-  Serial.println(message[2]);
-
-  Serial.print("Neck Y-Value:");
-  Serial.println(message[3]);
-
-  Serial.print("Right Stick Click:");       // 0 = pressed, 1 = not pressed
-  Serial.println((message[4] & 0x02) >> 1);
-
-  Serial.print("Left Stick Click:");        // 0 = pressed, 1 = not pressed
-  Serial.println(message[4] & 0x01);
+  // Serial Message Printing
+  printMessage(message);
   
-  /***********************************************************************/
-
   // Compund instruction, but most important
   // radio.write() returns a boolean 0 or 1
   // 0 return means the write was unsuccessful, meaning it was not received by receiver
   // 1 return means write was successful
-  // CALLS radio.write and checks its value
+  // CALLS radio.write() and checks its value
   if (!radio.write(&message, sizeof(message) )){      // if 0 returned 
    Serial.println(F("failed"));                         //    print "failed"
   }

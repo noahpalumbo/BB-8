@@ -1,6 +1,22 @@
+
 # Changelog
 
-**1.1.0:**
+**1.1.1:**
+- Modularized code for QoL readability
+- Controller
+	- new .h and .cpp
+	- Message Debug Print
+	- Set Pin Modes
+- Receiver
+	- new .h and .cpp
+	- Header Variables
+	- Message Debug Print
+	- Set Pin Modes
+	- Positive Motor Damping
+	- Negative Motor Damping
+	- Zero Motor Damping
+
+[**1.1.0:**](https://github.com/noahpalumbo/BB-8/commit/2d3722d28d72cebc5c408ae232ef2b82f266f365)
 
 - Head rotation command transmission integrated in both base and
    controller
