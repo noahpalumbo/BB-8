@@ -47,5 +47,7 @@ void printMessage(uint8_t message[])
   Serial.print("Left Stick Click:");        // 0 = pressed, 1 = not pressed
   Serial.println(message[4] & 0x01);
   
+  Serial.println();
+  
   /***********************************************************************/
 }

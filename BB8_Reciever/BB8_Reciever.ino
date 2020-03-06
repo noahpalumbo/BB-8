@@ -18,6 +18,10 @@ Servo SERVO2;
 int currMotorY = 0;
 int currMotorX = 0;
 
+// Disconnect Mode Timer
+int disconnect_counter = 0;
+const int disconnect_threshold = 5;
+
 /* Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 7 & 8 */
 RF24 radio(8, 53);
 /**********************************************************/
@@ -29,7 +33,7 @@ byte addresses[][6] = {"1Node", "2Node"};
 // bool role = 0;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
 
   radio.begin();
 
@@ -71,14 +75,17 @@ void loop() {
   int servo1angle;
   int servo2angle;
   
-  if (radio.available()) {
-    //Serial.print("Radio received!");
+  if (radio.available()) {                                  // if controller is connected
+    // Serial.print("Radio received!");
     // Variable for the received timestamp
     while (radio.available()) {                             // While there is data ready
       radio.read( &payload, sizeof(uint8_t)*5 );             // Get the payload
       //Serial.println(payload, BIN);
     }
 
+    // Reset Disconnect Counter since message was received
+    disconnect_counter = 0;
+    
     // FOR USE IF CONTROLLER NEEDS FEEDBACK
     //radio.stopListening();                                        // First, stop listening so we can talk
     //radio.write( &payload, sizeof(unsigned long) );               // Send the final one back.
@@ -97,14 +104,44 @@ void loop() {
     neckY = payload[3];
     rotate = payload[4];    // 0 & 3 do nothing, 1 and 2 rotate in respective directions
 
-    // Print Payload Fragments
-    printPayload(payload);
     
+    // Print Payload Fragments
+    //printPayload(payload);
+  }
+
+  else{  // controller not/dis connected
+        Serial.print("Disconnect Counter = ");
+        Serial.println(disconnect_counter);
+        if(disconnect_counter < disconnect_threshold)
+          disconnect_counter++;
+        else
+        {
+          // Alert serial monitor
+          Serial.println("CONTROLLER NOT CONNECTED");
+          // Give inputs 0 values
+          motorX = 127; // Joystick range = [0,255]
+          motorY = 127; // so center @ ~127
+          neckX = 127;
+          neckY = 127;
+          rotate = 3;
+        }
+     }
+
     // Joystick values can range -127 and +127, set from 127 to 0 by subtracting 127
     motorY -= 127;
     motorX -= 127;
     neckY -= 127;
     neckX -= 40;
+
+    // Limit Motor Values to +/- 128
+    if(motorX < -127)     // Otherwise the motor value
+      motorX = -127;      // can overflow and the value
+    else if(motorX > 127) // resets straight to 0
+      motorX = 127;       // Very bad for the motors
+    if(motorY < -127)
+      motorY = -127;
+    else if(motorY > 127)
+      motorY = 127;
 
     // Modified to Zero Center Payload Debug Prints
     // values roughly (-127 <-> 127)
@@ -122,7 +159,7 @@ void loop() {
     
 
     // Motor Damping Debug Prints
-    /*Serial.print("motorY: ");
+    Serial.print("motorY: ");
     Serial.println(motorY);
     Serial.print("currMotorY: ");
     Serial.println(currMotorY);
@@ -132,7 +169,7 @@ void loop() {
     Serial.print("currMotorX: ");
     Serial.println(currMotorX);
     
-    Serial.println();*/
+    Serial.println();
 
     
     // scaling to account for overflow
@@ -150,9 +187,9 @@ void loop() {
 
     // MOTOR OUTPUT CODE
         // Motor Y Direction and currMotorY update
-        if (motorY < -5)                    // if user input is negative Y
+        if (motorY < motorNegBound)                    // if user input is negative Y
           currMotorY = negativeInputDamp(motorY, currMotorY);
-        else if (motorY > 5)                // if user input is positive Y
+        else if (motorY > motorPosBound)                // if user input is positive Y
           currMotorY = positiveInputDamp(motorY, currMotorY);
         else     // user input is zero
           currMotorY = zeroInputDamp(motorY, currMotorY);
@@ -183,9 +220,9 @@ void loop() {
         
 
         // Motor X Direction and currMotorX update
-        if (motorX < -5)                     // if user input is negative X
+        if (motorX < motorNegBound)                     // if user input is negative X
           currMotorX = negativeInputDamp(motorX, currMotorX);
-        else if (motorX > 5)                 // if user input is positive X
+        else if (motorX > motorPosBound)                 // if user input is positive X
           currMotorX = positiveInputDamp(motorX, currMotorX);
         else                                 // user input is zero
           currMotorX = zeroInputDamp(motorX, currMotorX);
@@ -253,9 +290,9 @@ void loop() {
         Serial.print("rotDir2: ");
         Serial.println(rotDir2);
         Serial.println();*/
-        
-      }
 
+       // Delay to slow everything down for testing
+       //delay(200);
 } // Loop
 
 //Motor 1 is janky

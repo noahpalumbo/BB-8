@@ -1,7 +1,15 @@
 
 # Changelog
 
-**1.1.1:**
+**1.2.0:**
+- Added support for disconnected mode
+- Receiver
+	- Added motor limiting so no values past +/-127 (avoids overflow)
+	- Removed some extraneous lines from all damping functions
+	- Restructured (streamlined) damping functions
+	- Fixed bug where damping would not take effect when it should
+
+[**1.1.1:**](https://github.com/noahpalumbo/BB-8/commit/6e8e3ae2f59b290598aa769f1258f2aadb74deea)
 - Modularized code for QoL readability
 - Controller
 	- new .h and .cpp

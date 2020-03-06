@@ -22,9 +22,9 @@ const int Y_DIR2_PIN2 = 34;
 
 // connect motor controller pins to Arduino digital pins
 // Neck Spinning Pins
-const int rotEn = 13;
-const int rotDir1 = 6;
-const int rotDir2 = 4;
+const int rotEn = 25;
+const int rotDir1 = 24;
+const int rotDir2 = 23;
 
 // Pins for Servos
 const int s1pin = 11;
@@ -36,6 +36,10 @@ const int s2pin = 12;
 const int dampingConstant = 1;
 const int fastDampingConstant = 5 * dampingConstant;  // use when need a quicker damp (mainly for deceleration [yeah I know it's just acceleration in a different direction])
 
+// Set Movement Motor Zero Bounds
+// set values that motor values need to pass in order to send signal to motor
+const int motorPosBound = 20;
+const int motorNegBound = -20;
 
 // sets pin modes for each peripheral
 void setPins();

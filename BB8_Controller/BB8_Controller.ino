@@ -79,5 +79,5 @@ void loop() {
   }
 
   // Short delay before next payload sent
-  delay(100);
+  //delay(100);
 } // Loop back

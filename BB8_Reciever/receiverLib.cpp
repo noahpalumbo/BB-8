@@ -2,7 +2,7 @@
 
 void setPins()
 {
-  pinMode(53, OUTPUT); //Required on Arduino MEGA
+  pinMode(53, OUTPUT); // Required on Arduino MEGA for nRF
   
   //Set motor pins to output
   pinMode(X_PWM_PIN, OUTPUT);
@@ -24,15 +24,15 @@ void setPins()
 void printPayload(uint8_t payload[])
 {
       // Payload Debug Prints   
-    Serial.print("motorX: ");
+    Serial.print("payload[0]: ");
     Serial.println(payload[0]);
-    Serial.print("motorY: ");
+    Serial.print("payload[1]: ");
     Serial.println(payload[1]);
-    Serial.print("neckX: ");
+    Serial.print("payload[2]: ");
     Serial.println(payload[2]);
-    Serial.print("neckY: ");
+    Serial.print("payload[3]: ");
     Serial.println(payload[3]);
-    Serial.print("rotate: ");
+    Serial.print("payload[4]: ");
     Serial.println(payload[4]);
     Serial.println();
 }
@@ -41,15 +41,14 @@ int negativeInputDamp(int input, int curr)
 {
   // need to move backward
   // and convert joystick angle to positive analog signal from 0 to 255
-  if (curr > 0){               // if was moving forward, then input suddenly changed to backwards
+  if(curr > 0)                   // if switching from positive to negative
     curr -= fastDampingConstant;
-  }
-  else if (curr < input) {    // if user lowers input but not quite to zero
-    curr = input;
-  }
-  else {
+  else if (curr > input)        // if slowing but still in negative direction
     curr -= dampingConstant;
-    }
+  else if (curr > (input + fastDampingConstant))     // if user lowers input but not quite to zero
+    curr = input;
+  else                          // speeding up
+    curr += fastDampingConstant;
   return curr;
 }
 
@@ -57,33 +56,26 @@ int positiveInputDamp(int input, int curr)
 {
   // need to move forward
   // and convert joystick angle to positive analog signal from 0 to 255
-  if (curr < 0){               // if was moving backwards, then input suddenly changed to forwards
+  if (curr < 0)                   // if switching from negative to positive
     curr += fastDampingConstant;
-  }
-  else if (curr > input) {    // if user lowers input but not quite to zero
-    curr = input;
-  }
-  else {
+  else if (curr < input)          // if slowing but still in positive direction
     curr += dampingConstant;
-    }
+  else if (curr < (input + fastDampingConstant))      // if user lowers input but not quite to zero
+    curr = input;
+  else                            // speeding up
+    curr -= fastDampingConstant;
   return curr;
 }
 
 int zeroInputDamp(int input, int curr)
 {
-  //need to release motor (  )
+  // need to release motor (  )
   // and set speed to 0
-  if (curr < 0 - fastDampingConstant) // damping from -Y to 0
-    {
+  if (curr < (0 - fastDampingConstant)) // damping from - to 0
       curr += fastDampingConstant;
-     }
-  else if (curr > 0 + fastDampingConstant) // damping from +Y to 0
-    {
+  else if (curr > (0 + fastDampingConstant)) // damping from + to 0
       curr -= fastDampingConstant;
-     }
-  else
-    {                                    // if the output is less than fastDampingConstant just set to zero
+  else                 // if the output is less than fastDampingConstant just set to zero
      curr = 0;
-    }
   return curr;
 }
