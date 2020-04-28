@@ -1,7 +1,17 @@
 
 # Changelog
 
-**1.2.0:**
+**1.3.0:**
+- Modified payload structure to include audio input from push-button
+	- fifth byte of the payload array (payload[4]), last 2 bits of the first nibble are designated to audio
+- Added files
+	- BB8_Audio for sound generation through Arduino Uno w/ Adafruit Music Maker Shield
+	- BB8_Head to control the head circuit much like the body receiver sketch
+- Renamed "receiver" files to "body" for clarity
+- Cleaned up User and RF Config blocks for each sketch
+
+
+[**1.2.0:**](https://github.com/noahpalumbo/BB-8/commit/02ddbac8ae0f42a19241ebe915790d7bfecf067c)
 - Added support for disconnected mode
 - Receiver
 	- Added motor limiting so no values past +/-127 (avoids overflow)

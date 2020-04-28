@@ -12,6 +12,8 @@ void setPins()
   pinMode(A5, INPUT_PULLUP);
   pinMode(A6, INPUT); // Y1 neck y
   pinMode(A7, INPUT); // X1 neck x
+  // Input from audio button
+  pinMode(2, INPUT); // Button for random audio playback
   Serial.println("Pins set");
 }
 
